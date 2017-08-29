@@ -610,8 +610,8 @@ class Tools extends BaseTools
         //tratar dados de retorno
         $this->aLastRetEvent = Response::readReturnSefaz($servico, $retorno);
         if ($this->aLastRetEvent['cStat'] == '134' ||
-                $this->aLastRetEvent['cStat'] == '135' ||
-                $this->aLastRetEvent['cStat'] == '136') {
+            $this->aLastRetEvent['cStat'] == '135' ||
+            $this->aLastRetEvent['cStat'] == '136') {
             $pasta = 'eventos'; //default
             if ($aliasEvento == 'CancCTe') {
                 $pasta = 'canceladas';
@@ -828,10 +828,10 @@ class Tools extends BaseTools
         foreach ($infCorrecao as $info) {
             $correcoes .=
                 "<infCorrecao>"
-                    ."<grupoAlterado>".$info['grupoAlterado']."</grupoAlterado>"
-                    ."<campoAlterado>".$info['campoAlterado']."</campoAlterado>"
-                    ."<valorAlterado>".$info['valorAlterado']."</valorAlterado>"
-                    ."<nroItemAlterado>".$info['nroItemAlterado']."</nroItemAlterado>"
+                ."<grupoAlterado>".$info['grupoAlterado']."</grupoAlterado>"
+                ."<campoAlterado>".$info['campoAlterado']."</campoAlterado>"
+                ."<valorAlterado>".$info['valorAlterado']."</valorAlterado>"
+                ."<nroItemAlterado>".$info['nroItemAlterado']."</nroItemAlterado>"
                 ."</infCorrecao>";
         }
         //monta mensagem
@@ -971,7 +971,7 @@ class Tools extends BaseTools
         $procXML = '';
         //carrega a CTe
         $docCTe = new Dom();
-        
+
         if (file_exists($pathCTefile)) {
             //carrega o XML pelo caminho do arquivo informado
             $docCTe->loadXMLFile($pathCTefile);
@@ -979,7 +979,7 @@ class Tools extends BaseTools
             //carrega o XML pelo conteúdo
             $docCTe->loadXMLString($pathCTefile);
         }
-        
+
         $nodeCTe = $docCTe->getNode('CTe', 0);
         if ($nodeCTe == '') {
             $msg = "O arquivo indicado como CTe não é um xml de CTe!";
@@ -1000,7 +1000,7 @@ class Tools extends BaseTools
         //carrega o cancelamento
         //pode ser um evento ou resultado de uma consulta com multiplos eventos
         $doccanc = new Dom();
-        
+
         if (file_exists($pathCancfile)) {
             //carrega o XML pelo caminho do arquivo informado
             $doccanc->loadXMLFile($pathCancfile);
@@ -1086,20 +1086,93 @@ class Tools extends BaseTools
         }
         //monta mensagem
         return "<evCCeCTe>" .
-            "<descEvento>Carta de Correcao</descEvento>" .
-            "{$correcoes}" .
-            "<xCondUso>" .
-            "A Carta de Correcao e disciplinada pelo Art. 58-B do " .
-            "CONVENIO/SINIEF 06/89: Fica permitida a utilizacao de carta de " .
-            "correcao, para regularizacao de erro ocorrido na emissao de " .
-            "documentos fiscais relativos a prestacao de servico de transporte, " .
-            "desde que o erro nao esteja relacionado com: I - as variaveis que " .
-            "determinam o valor do imposto tais como: base de calculo, " .
-            "aliquota, diferenca de preco, quantidade, valor da prestacao;II - " .
-            "a correcao de dados cadastrais que implique mudanca do emitente, " .
-            "tomador, remetente ou do destinatario;III - a data de emissao ou " .
-            "de saida." .
-            "</xCondUso>" .
+        "<descEvento>Carta de Correcao</descEvento>" .
+        "{$correcoes}" .
+        "<xCondUso>" .
+        "A Carta de Correcao e disciplinada pelo Art. 58-B do " .
+        "CONVENIO/SINIEF 06/89: Fica permitida a utilizacao de carta de " .
+        "correcao, para regularizacao de erro ocorrido na emissao de " .
+        "documentos fiscais relativos a prestacao de servico de transporte, " .
+        "desde que o erro nao esteja relacionado com: I - as variaveis que " .
+        "determinam o valor do imposto tais como: base de calculo, " .
+        "aliquota, diferenca de preco, quantidade, valor da prestacao;II - " .
+        "a correcao de dados cadastrais que implique mudanca do emitente, " .
+        "tomador, remetente ou do destinatario;III - a data de emissao ou " .
+        "de saida." .
+        "</xCondUso>" .
         "</evCCeCTe>";
     }
+
+    /**
+     * cteDownload
+     * Solicita o download de CTes
+     *
+     * @param  string $chNFe
+     * @param  string $tpAmb
+     * @param  string $cnpj
+     * @param  array  $aRetorno
+     * @return string
+     * @throws Exception\RuntimeException
+     */
+    public function cteDownload(
+        $chCTe='',
+        $tpAmb = '',
+        $cnpj = '',
+        &$aRetorno = array(),
+        $ultimoNSU = 0
+    ) {
+        if ($tpAmb == '') {
+            $tpAmb = $this->aConfig['tpAmb'];
+        }
+        $siglaUF = $this->aConfig['siglaUF'];
+        if ($cnpj == '') {
+            $cnpj = $this->aConfig['cnpj'];
+        }
+        //carrega serviço
+        $servico = 'CTeDistribuicaoDFe';
+        $this->zLoadServico(
+            'cte',
+            $servico,
+            'AN',
+            $tpAmb
+        );
+
+        if ($this->urlService == '') {
+            $msg = "A distribuição de documento Cte não está disponível na SEFAZ !!!";
+            throw new Exception\RuntimeException($msg);
+        }
+        $cUF = self::getcUF($siglaUF);
+
+        $ultimoNSU = str_pad($ultimoNSU, 15, '0', STR_PAD_LEFT);
+
+        $body  = "";
+        $body .= "<cteDistDFeInteresse xmlns='http://www.portalfiscal.inf.br/cte/wsdl/CTeDistribuicaoDFe'>";
+        $body .= "       <cteDadosMsg><distDFeInt xmlns='http://www.portalfiscal.inf.br/cte' versao='1.00'>";
+        $body .= "           <tpAmb>{$tpAmb}</tpAmb>";
+        $body .= "           <cUFAutor>{$cUF}</cUFAutor>";
+        $body .= "           <CNPJ>{$cnpj}</CNPJ>";
+        $body .= "           <distNSU><ultNSU>{$ultimoNSU}</ultNSU></distNSU>";
+        $body .= "       </distDFeInt></cteDadosMsg>";
+        $body .= "</cteDistDFeInteresse>";
+
+        //envia dados via SOAP e verifica o retorno este webservice não requer cabeçalho
+        $retorno = $this->oSoap->send(
+            $this->urlService,
+            $this->urlNamespace,
+            $this->urlHeader,
+            $body,
+            $this->urlMethod
+        );
+
+        $lastMsg = $this->oSoap->lastMsg;
+        //salva mensagens
+        $filename = "$chCTe-downCTe.xml";
+        $this->zGravaFile('cte', $tpAmb, $filename, $lastMsg);
+        $filename = "$chCTe-retCTe.xml";
+        $this->zGravaFile('cte', $tpAmb, $filename, $retorno);
+        //tratar dados de retorno
+        $aRetorno = Response::readReturnSefaz($servico, $retorno);
+        return (string) $retorno;
+    }
+
 }
